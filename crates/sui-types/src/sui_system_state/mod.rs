@@ -16,6 +16,7 @@ use move_core_types::{ident_str, identifier::IdentStr, language_storage::StructT
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use sui_protocol_config::ProtocolVersion;
 
 use self::sui_system_state_inner_v1::{SuiSystemStateInnerV1, ValidatorV1};
 use self::sui_system_state_summary::{SuiSystemStateSummary, SuiValidatorSummary};
@@ -80,6 +81,7 @@ pub trait SuiSystemStateTrait {
     fn epoch_start_timestamp_ms(&self) -> u64;
     fn epoch_duration_ms(&self) -> u64;
     fn safe_mode(&self) -> bool;
+    fn advance_epoch_safe_mode(&mut self, params: &AdvanceEpochParams);
     fn get_current_epoch_committee(&self) -> CommitteeWithNetworkMetadata;
     fn into_epoch_start_state(self) -> EpochStartSystemState;
     fn into_sui_system_state_summary(self) -> SuiSystemStateSummary;
@@ -305,4 +307,15 @@ impl PoolTokenExchangeRate {
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
 pub struct ValidatorWrapper {
     pub inner: Versioned,
+}
+pub struct AdvanceEpochParams {
+    pub epoch: u64,
+    pub next_protocol_version: ProtocolVersion,
+    pub storage_charge: u64,
+    pub computation_charge: u64,
+    pub storage_rebate: u64,
+    pub non_refundable_storage_fee: u64,
+    pub storage_fund_reinvest_rate: u64,
+    pub reward_slashing_rate: u64,
+    pub epoch_start_timestamp_ms: u64,
 }

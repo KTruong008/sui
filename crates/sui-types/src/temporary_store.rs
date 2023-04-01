@@ -16,9 +16,13 @@ use tracing::trace;
 
 use crate::coin::Coin;
 use crate::committee::EpochId;
+use crate::dynamic_field::get_dynamic_field_object_from_store;
 use crate::messages::TransactionEvents;
 use crate::storage::ObjectStore;
-use crate::sui_system_state::{get_sui_system_state, SuiSystemState};
+use crate::sui_system_state::{
+    get_sui_system_state, get_sui_system_state_wrapper, AdvanceEpochParams, SuiSystemState,
+    SuiSystemStateTrait,
+};
 use crate::{
     base_types::{
         ObjectDigest, ObjectID, ObjectRef, SequenceNumber, SuiAddress, TransactionDigest,
@@ -741,6 +745,26 @@ impl<S: ObjectStore> TemporaryStore<S> {
             covered.insert(to_authenticate, parent);
         }
         Ok(())
+    }
+
+    pub fn advance_epoch_safe_mode(&mut self, params: &AdvanceEpochParams) {
+        let wrapper = get_sui_system_state_wrapper(&self.store)
+            .expect("System state wrapper object must exist");
+        let mut system_state =
+            get_sui_system_state(&self.store).expect("System state object must exist");
+        system_state.advance_epoch_safe_mode(params);
+        let mut inner_obj = get_dynamic_field_object_from_store(
+            &self.store,
+            SUI_SYSTEM_STATE_OBJECT_ID,
+            &wrapper.version,
+        )
+        .expect("Sui system state inner object must exist");
+        let move_object = object
+            .data
+            .try_as_move()
+            .expect("Sui system state inner object must be a Move object");
+        let field = bcs::from_bytes::<Field<u64, Sui>>(move_object.contents())
+            .expect("Sui system state inner object must be a Field object");
     }
 
     /// 1. Compute tx storage gas costs and tx storage rebates, update storage_rebate field of mutated objects
